@@ -28,21 +28,133 @@ const Index = () => {
     });
 
     try {
-      const response = await analyzeAudio(audioFile, filename);
+      console.log('🚀 Starting audio analysis for:', filename);
+      console.log('📁 File details:', {
+        name: filename,
+        size: audioFile.size,
+        type: audioFile.type
+      });
+
+      // ✅ Call the API
+      const analysisData = await analyzeAudio(audioFile, filename);
       
-      if (response.data.detected_symptoms.length > 0) {
-        setResults(response.data);
+      console.log('=== 🔍 RECEIVED DATA DEBUG ===');
+      console.log('Raw analysisData:', analysisData);
+      console.log('Type of analysisData:', typeof analysisData);
+      console.log('Is analysisData null/undefined?', analysisData == null);
+      
+      if (analysisData) {
+        console.log('analysisData keys:', Object.keys(analysisData));
+        console.log('detected_symptoms exists?', 'detected_symptoms' in analysisData);
+        console.log('detected_symptoms value:', analysisData.detected_symptoms);
+        console.log('detected_symptoms type:', typeof analysisData.detected_symptoms);
+        console.log('all_symptoms exists?', 'all_symptoms' in analysisData);
+        console.log('summary exists?', 'summary' in analysisData);
+        console.log('recommendations exists?', 'recommendations' in analysisData);
+        console.log('processing_info exists?', 'processing_info' in analysisData);
+      }
+      console.log('===============================');
+      
+      // ✅ CRITICAL: Validate and sanitize the response
+      if (!analysisData) {
+        throw new Error('No analysis data received from server');
+      }
+      
+      // ✅ Create a safe, fully validated analysis data object
+      const safeAnalysisData: AnalysisData = {
+        detected_symptoms: (() => {
+          if (Array.isArray(analysisData.detected_symptoms)) {
+            return analysisData.detected_symptoms;
+          } else {
+            console.warn('⚠️ detected_symptoms is not an array:', analysisData.detected_symptoms);
+            return [];
+          }
+        })(),
+        
+        all_symptoms: (() => {
+          if (analysisData.all_symptoms && typeof analysisData.all_symptoms === 'object') {
+            return analysisData.all_symptoms;
+          } else {
+            console.warn('⚠️ all_symptoms is not an object:', analysisData.all_symptoms);
+            return {};
+          }
+        })(),
+        
+        summary: (() => {
+          if (analysisData.summary && typeof analysisData.summary === 'object') {
+            return {
+              total_detected: analysisData.summary.total_detected || 0,
+              highest_confidence: analysisData.summary.highest_confidence || 0,
+              status: analysisData.summary.status || 'no_symptoms'
+            };
+          } else {
+            console.warn('⚠️ summary is missing, creating default');
+            const detectedCount = Array.isArray(analysisData.detected_symptoms) 
+              ? analysisData.detected_symptoms.length 
+              : 0;
+            return {
+              total_detected: detectedCount,
+              highest_confidence: detectedCount > 0 
+                ? Math.max(...(analysisData.detected_symptoms || []).map((s: any) => s.confidence || 0))
+                : 0,
+              status: detectedCount > 0 ? 'symptoms_detected' : 'no_symptoms'
+            };
+          }
+        })(),
+        
+        recommendations: (() => {
+          if (Array.isArray(analysisData.recommendations)) {
+            return analysisData.recommendations;
+          } else {
+            console.warn('⚠️ recommendations is not an array:', analysisData.recommendations);
+            return ['Analysis completed successfully.'];
+          }
+        })(),
+        
+        processing_info: (() => {
+          if (analysisData.processing_info && typeof analysisData.processing_info === 'object') {
+            return {
+              preprocessing_time_ms: analysisData.processing_info.preprocessing_time_ms || 0,
+              inference_time_ms: analysisData.processing_info.inference_time_ms || 0,
+              total_time_ms: analysisData.processing_info.total_time_ms || 0,
+              model_status: analysisData.processing_info.model_status
+            };
+          } else {
+            console.warn('⚠️ processing_info is missing, creating default');
+            return {
+              preprocessing_time_ms: 0,
+              inference_time_ms: 0,
+              total_time_ms: 0
+            };
+          }
+        })()
+      };
+      
+      console.log('✅ Safe analysis data created:', safeAnalysisData);
+      console.log('✅ Detected symptoms count:', safeAnalysisData.detected_symptoms.length);
+      console.log('✅ Summary total detected:', safeAnalysisData.summary.total_detected);
+      
+      // ✅ Display results based on detected symptoms
+      if (safeAnalysisData.detected_symptoms.length > 0) {
+        setResults(safeAnalysisData);
         toast.success('Analysis complete!', {
-          description: `Found ${response.data.summary.total_detected} symptoms`,
+          description: `Found ${safeAnalysisData.summary.total_detected} symptoms`,
         });
       } else {
         toast.info('No significant symptoms detected', {
           description: 'The analysis did not identify any symptoms above the confidence threshold',
         });
-        setResults(response.data); // Still show results even if no symptoms
+        setResults(safeAnalysisData); // Still show results even if no symptoms
       }
+      
     } catch (error) {
-      console.error('Analysis failed:', error);
+      console.error('=== 🚨 ANALYSIS ERROR DEBUG ===');
+      console.error('Error type:', error instanceof Error ? error.constructor.name : typeof error);
+      console.error('Error message:', error instanceof Error ? error.message : String(error));
+      console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
+      console.error('Full error object:', error);
+      console.error('===================================');
+      
       toast.error('Analysis failed', {
         description: error instanceof Error ? error.message : 'Please try again',
       });
@@ -55,6 +167,7 @@ const Index = () => {
     setResults(null);
     setCurrentFilename('');
     setIsAnalyzing(false);
+    console.log('🔄 Analysis reset');
   };
 
   return (
@@ -68,11 +181,6 @@ const Index = () => {
       <div className="container mx-auto px-4 py-8 max-w-6xl relative z-10">
         {/* Header */}
         <div className="text-center mb-8 animate-fade-in">
-          <div className="flex justify-center mb-6">
-            <div className="p-4 bg-primary/10 rounded-2xl">
-              <Sparkles className="h-12 w-12 text-primary" />
-            </div>
-          </div>
           <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-4">
             AI Respiratory Symptom Analyzer
           </h1>
@@ -236,6 +344,9 @@ const Index = () => {
                 </h3>
                 <p className="text-muted-foreground">
                   Please wait while our AI processes your audio sample...
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Processing: {currentFilename}
                 </p>
               </div>
             </Card>

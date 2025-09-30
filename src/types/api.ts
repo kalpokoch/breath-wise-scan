@@ -5,13 +5,15 @@ export interface Symptom {
   color: string;
 }
 
+// ✅ FIXED: AllSymptoms should match backend structure
 export interface AllSymptoms {
-  fever: number;
-  cold: number;
-  sorethroat: number;
-  lossofsmell: number;
-  fatigue: number;
-  cough: number;
+  [key: string]: {
+    display_name: string;
+    confidence: number;
+    detected: boolean;
+    threshold: number;
+    color: string;
+  };
 }
 
 export interface Summary {
@@ -20,10 +22,12 @@ export interface Summary {
   status: string;
 }
 
+// ✅ FIXED: Added missing fields from backend
 export interface ProcessingInfo {
   preprocessing_time_ms: number;
   inference_time_ms: number;
   total_time_ms: number;
+  model_status?: string; // ✅ Added this field
 }
 
 export interface AnalysisData {
@@ -40,12 +44,13 @@ export interface AnalysisResponse {
   metadata: {
     filename: string;
     file_size_bytes: number;
+    content_type?: string; // ✅ Added optional field
     timestamp: number;
   };
 }
 
 export interface AudioRecording {
-  blob: Blob;
+  blob: Blob | File; // ✅ Allow File objects too
   url: string;
   duration: number;
 }

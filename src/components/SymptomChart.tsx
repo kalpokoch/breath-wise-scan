@@ -1,5 +1,4 @@
 import React from 'react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Cell } from 'recharts';
 import { Symptom } from '../types/api';
 
 interface SymptomChartProps {
@@ -7,19 +6,20 @@ interface SymptomChartProps {
 }
 
 const SymptomChart: React.FC<SymptomChartProps> = ({ symptoms }) => {
-  // Sort symptoms by confidence (highest first)
   const sortedSymptoms = [...symptoms].sort((a, b) => b.confidence - a.confidence);
-  
-  const chartData = sortedSymptoms.map(symptom => ({
-    name: symptom.display_name,
-    confidence: Math.round(symptom.confidence * 100),
-    color: symptom.color
-  }));
 
-  const CustomBar = (props: any) => {
-    const { payload } = props;
-    return <Bar {...props} fill={payload?.color || '#3b82f6'} />;
-  };
+  if (sortedSymptoms.length === 0) {
+    return (
+      <div className="chart-container animate-fade-in">
+        <h3 className="text-lg font-semibold text-foreground mb-4">
+          Detected Symptoms by Confidence
+        </h3>
+        <div className="h-80 flex items-center justify-center text-muted-foreground">
+          No symptoms detected
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="chart-container animate-fade-in">
@@ -27,37 +27,66 @@ const SymptomChart: React.FC<SymptomChartProps> = ({ symptoms }) => {
         Detected Symptoms by Confidence
       </h3>
       
-      <div className="h-80">
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart
-            data={chartData}
-            layout="horizontal"
-            margin={{ top: 20, right: 30, left: 80, bottom: 20 }}
-          >
-            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-            <XAxis 
-              type="number" 
-              domain={[0, 100]}
-              tickFormatter={(value) => `${value}%`}
-              tick={{ fill: 'hsl(var(--muted-foreground))' }}
-            />
-            <YAxis 
-              type="category" 
-              dataKey="name" 
-              width={70}
-              tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
-            />
-            <Bar 
-              dataKey="confidence" 
-              radius={[0, 4, 4, 0]}
-              animationDuration={1000}
-            >
-              {chartData.map((entry, index) => (
-                <Cell key={`cell-${index}`} fill={entry.color} />
-              ))}
-            </Bar>
-          </BarChart>
-        </ResponsiveContainer>
+      {/* Chart Area */}
+      <div className="space-y-4 p-6">
+        {sortedSymptoms.map((symptom, index) => {
+          const percentage = Math.round(symptom.confidence * 100);
+          return (
+            <div key={index} className="flex items-center space-x-4">
+              {/* Symptom Label */}
+              <div className="w-32 text-sm font-medium text-right text-foreground">
+                {symptom.display_name}
+              </div>
+              
+              {/* Bar Container - Full width track */}
+              <div className="flex-1 relative">
+                {/* Background Track - Full width */}
+                <div className="w-full bg-muted rounded-lg h-8 relative">
+                  {/* Grid Lines */}
+                  <div className="absolute inset-0 flex items-center pointer-events-none">
+                    <div className="w-1/4 h-full border-r border-border/30"></div>
+                    <div className="w-1/4 h-full border-r border-border/30"></div>
+                    <div className="w-1/4 h-full border-r border-border/30"></div>
+                    <div className="w-1/4 h-full"></div>
+                  </div>
+                  
+                  {/* Animated Bar - Proportional width */}
+                  <div
+                    className="h-full rounded-lg flex items-center justify-center text-white text-sm font-medium absolute left-0 top-0 transition-all duration-1000 ease-out"
+                    style={{
+                      width: `${percentage}%`, // This should be the actual percentage
+                      backgroundColor: symptom.color,
+                      transitionDelay: `${index * 100}ms`
+                    }}
+                  >
+                    {percentage >= 15 && (
+                      <span className="drop-shadow-sm">{percentage}%</span>
+                    )}
+                  </div>
+                  
+                  {/* Text outside bar for small percentages */}
+                  {percentage < 15 && (
+                    <div className="absolute left-2 top-1/2 transform -translate-y-1/2 text-xs text-foreground font-medium">
+                      {percentage}%
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      
+      {/* X-Axis Labels */}
+      <div className="flex justify-between text-xs text-muted-foreground mt-2 px-6">
+        <div className="w-32"></div>
+        <div className="flex-1 flex justify-between px-4">
+          <span>0%</span>
+          <span>25%</span>
+          <span>50%</span>
+          <span>75%</span>
+          <span>100%</span>
+        </div>
       </div>
       
       <div className="mt-4 text-sm text-muted-foreground">

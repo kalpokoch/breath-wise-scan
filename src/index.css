@@ -2,8 +2,8 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Medical/Health themed design system with professional styling */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+/* Medical/Health themed design system with professional styling */
 
 @layer base {
   :root {
@@ -208,4 +208,23 @@
   to {
     width: var(--bar-width);
   }
+}
+
+/* Add to your index.css */
+@keyframes slideInBar {
+  from {
+    width: 0;
+    opacity: 0;
+    transform: scaleX(0);
+  }
+  to {
+    width: 100%;
+    opacity: 1;
+    transform: scaleX(1);
+  }
+}
+
+.chart-bar-animate {
+  transform-origin: left;
+  animation: slideInBar 1s ease-out forwards;
 }

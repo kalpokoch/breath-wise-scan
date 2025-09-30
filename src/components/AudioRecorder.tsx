@@ -55,11 +55,23 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ onAudioReady, disabled })
     setIsPlaying(!isPlaying);
   };
 
+  // ✅ FIXED: Use the converted file from useAudioRecorder
   const handleUseRecording = () => {
     if (recording) {
-      const filename = `recording_${Date.now()}.webm`;
+      // The recording.blob is already a File object with proper name and format from useAudioRecorder
+      const filename = recording.blob instanceof File ? 
+        recording.blob.name : 
+        `recording_${Date.now()}.wav`; // ✅ Changed from .webm to .wav
+      
       onAudioReady(recording.blob, filename);
       toast.success('Recording ready for analysis');
+      
+      // ✅ Optional: Log for debugging
+      console.log('Sending recording:', {
+        filename,
+        type: recording.blob.type,
+        size: recording.blob.size
+      });
     }
   };
 
@@ -153,6 +165,13 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ onAudioReady, disabled })
               <p className="text-sm text-muted-foreground mb-3">
                 Duration: {formatDuration(recording.duration)}
               </p>
+              
+              {/* ✅ Optional: Show file format info */}
+              <p className="text-xs text-muted-foreground mb-3">
+                Format: {recording.blob.type || 'audio/wav'}
+                {recording.blob instanceof File && ` • ${recording.blob.name}`}
+              </p>
+              
               <Button
                 onClick={handleUseRecording}
                 disabled={disabled}
