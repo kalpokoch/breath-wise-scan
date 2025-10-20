@@ -156,9 +156,6 @@ const Index = () => {
         {/* Header */}
         <div className="text-center mb-8 animate-fade-in">
           <div className="flex justify-center mb-6">
-            <div className="p-4 bg-primary/10 rounded-2xl">
-              <Sparkles className="h-12 w-12 text-primary" />
-            </div>
           </div>
           <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-4">
             AI Respiratory Health Analyzer
