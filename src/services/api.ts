@@ -30,64 +30,82 @@ export const analyzeAudio = async (
       validateStatus: (status) => status < 500,
     });
 
-    console.log('=== 📊 COMPLETE API RESPONSE DEBUG ===');
+    console.log('=== 📊 ENHANCED API RESPONSE DEBUG ===');
     console.log('📈 Response status:', response.status);
     console.log('✅ Response success:', response.data.success);
     console.log('🗂️ Full response data:', JSON.stringify(response.data, null, 2));
     
     if (response.data.data) {
-      console.log('🎯 Detected symptoms count:', response.data.data.detected_symptoms?.length || 0);
-      console.log('🎯 Detected symptoms:', response.data.data.detected_symptoms);
-      console.log('🎯 All symptoms:', response.data.data.all_symptoms);
-      console.log('🎯 Summary:', response.data.data.summary);
-      console.log('🎯 Processing info:', response.data.data.processing_info);
+      const data = response.data.data;
+      console.log('🎯 Health classification:', data.health_classification);
+      console.log('🎯 Detected symptoms count:', data.detected_symptoms?.length || 0);
+      console.log('🎯 Detected symptoms:', data.detected_symptoms);
+      console.log('🎯 All symptoms:', data.all_symptoms);
+      console.log('🎯 Summary:', data.summary);
+      console.log('🎯 Summary status:', data.summary?.status);
+      console.log('🎯 Summary status message:', data.summary?.status_message);
+      console.log('🎯 Weights status:', data.summary?.weights_status);
+      console.log('🎯 Neutral threshold:', data.summary?.neutral_threshold);
+      console.log('🎯 Processing info:', data.processing_info);
     }
-    console.log('=====================================');
+    console.log('==========================================');
 
     if (response.status === 200 && response.data.success) {
-      const analysisData = response.data.data as AnalysisData;
+      const rawData = response.data.data;
       
-      // Validate and fix data structure
-      if (!analysisData) {
-        throw new ApiError('No analysis data received from server');
-      }
-      
-      if (!analysisData.detected_symptoms) {
-        console.warn('⚠️ No detected_symptoms in response, setting to empty array');
-        analysisData.detected_symptoms = [];
-      }
-      
-      if (!analysisData.all_symptoms) {
-        console.warn('⚠️ No all_symptoms in response, setting to empty object');
-        analysisData.all_symptoms = {};
-      }
-      
-      if (!analysisData.summary) {
-        console.warn('⚠️ No summary in response, creating default');
-        analysisData.summary = {
-          total_detected: analysisData.detected_symptoms.length,
-          highest_confidence: analysisData.detected_symptoms.length > 0 
-            ? Math.max(...analysisData.detected_symptoms.map(s => s.confidence))
-            : 0,
-          status: analysisData.detected_symptoms.length > 0 ? 'symptoms_detected' : 'no_symptoms'
-        };
-      }
-      
-      if (!analysisData.recommendations) {
-        console.warn('⚠️ No recommendations in response, setting to empty array');
-        analysisData.recommendations = [];
-      }
-      
-      if (!analysisData.processing_info) {
-        console.warn('⚠️ No processing_info in response, creating default');
-        analysisData.processing_info = {
-          preprocessing_time_ms: 0,
-          inference_time_ms: 0,
-          total_time_ms: 0
-        };
-      }
-      
-      console.log('✅ Final analysis data being returned:', analysisData);
+      // ✅ ENHANCED: Create fully validated AnalysisData with all new fields
+      const analysisData: AnalysisData = {
+        // Core analysis data
+        detected_symptoms: Array.isArray(rawData.detected_symptoms) 
+          ? rawData.detected_symptoms 
+          : [],
+        
+        all_symptoms: rawData.all_symptoms && typeof rawData.all_symptoms === 'object' 
+          ? rawData.all_symptoms 
+          : {},
+        
+        // ✅ Enhanced summary with all new fields
+        summary: {
+          total_detected: rawData.summary?.total_detected ?? 0,
+          highest_confidence: rawData.summary?.highest_confidence ?? 0,
+          max_overall_confidence: rawData.summary?.max_overall_confidence ?? 0,  // ✅ New field
+          status: rawData.summary?.status ?? 'inconclusive',
+          status_message: rawData.summary?.status_message ?? 'Analysis completed',  // ✅ New field
+          neutral_threshold: rawData.summary?.neutral_threshold ?? 0.35,  // ✅ New field
+          weights_status: rawData.summary?.weights_status ?? 'random'  // ✅ New field
+        },
+        
+        recommendations: Array.isArray(rawData.recommendations) 
+          ? rawData.recommendations 
+          : ['Analysis completed successfully.'],
+        
+        // ✅ Enhanced processing_info with all new fields
+        processing_info: {
+          preprocessing_time_ms: rawData.processing_info?.preprocessing_time_ms ?? 0,
+          inference_time_ms: rawData.processing_info?.inference_time_ms ?? 0,
+          total_time_ms: rawData.processing_info?.total_time_ms ?? 0,
+          model_weights_loaded: rawData.processing_info?.model_weights_loaded ?? false,  // ✅ Updated field
+          neutral_threshold: rawData.processing_info?.neutral_threshold ?? 0.35,  // ✅ New field
+          max_confidence: rawData.processing_info?.max_confidence ?? 0  // ✅ New field
+        },
+        
+        // ✅ New health classification field
+        health_classification: rawData.health_classification ?? 'inconclusive'
+      };
+
+      // ✅ Enhanced validation logging
+      console.log('=== ✅ ENHANCED VALIDATION RESULTS ===');
+      console.log('Health classification:', analysisData.health_classification);
+      console.log('Status:', analysisData.summary.status);
+      console.log('Status message:', analysisData.summary.status_message);
+      console.log('Weights status:', analysisData.summary.weights_status);
+      console.log('Total detected:', analysisData.summary.total_detected);
+      console.log('Neutral threshold:', analysisData.summary.neutral_threshold);
+      console.log('Max overall confidence:', analysisData.summary.max_overall_confidence);
+      console.log('Model weights loaded:', analysisData.processing_info.model_weights_loaded);
+      console.log('Recommendations count:', analysisData.recommendations.length);
+      console.log('=====================================');
+
       return analysisData;
     }
 
@@ -110,15 +128,16 @@ export const analyzeAudio = async (
     throw new ApiError('Unexpected response format', response.status);
 
   } catch (error) {
-    console.error('=== 🚨 API ERROR DEBUG ===');
+    console.error('=== 🚨 ENHANCED API ERROR DEBUG ===');
     console.error('❌ Error type:', error instanceof Error ? error.constructor.name : typeof error);
     console.error('❌ Error details:', error);
     
     if (axios.isAxiosError(error) && error.response) {
       console.error('❌ Response status:', error.response.status);
       console.error('❌ Response data:', error.response.data);
+      console.error('❌ Response headers:', error.response.headers);
     }
-    console.error('==========================');
+    console.error('========================================');
     
     if (axios.isAxiosError(error)) {
       if (error.code === 'ECONNABORTED') {
@@ -157,16 +176,31 @@ export const analyzeAudio = async (
   }
 };
 
+// ✅ Enhanced health check with detailed model status
 export const checkApiHealth = async (): Promise<any> => {
   try {
-    console.log('🏥 Checking API health...');
+    console.log('🏥 Checking enhanced API health...');
     const response = await axios.get(`${API_BASE_URL}/health`, {
       timeout: 10000,
     });
-    console.log('✅ Health check response:', response.data);
-    return response.data;
+    
+    const healthData = response.data;
+    console.log('✅ Enhanced health check response:', healthData);
+    
+    // ✅ Log enhanced health status details
+    if (healthData) {
+      console.log('🔍 Service ready:', healthData.service_ready);
+      console.log('🔍 Model loaded:', healthData.model_loaded);
+      console.log('🔍 Model weights status:', healthData.model_weights_status);
+      console.log('🔍 Health classification enabled:', healthData.health_classification_enabled);
+      console.log('🔍 Neutral threshold:', healthData.neutral_threshold);
+      console.log('🔍 Files found:', healthData.files_found);
+      console.log('🔍 Critical files missing:', healthData.critical_files_missing);
+    }
+    
+    return healthData;
   } catch (error) {
-    console.error('❌ Health check failed:', error);
+    console.error('❌ Enhanced health check failed:', error);
     if (axios.isAxiosError(error)) {
       const message = error.response?.data?.detail || error.message;
       throw new ApiError(`Health check failed: ${message}`, error.response?.status);
@@ -175,16 +209,30 @@ export const checkApiHealth = async (): Promise<any> => {
   }
 };
 
+// ✅ Enhanced API info with model features
 export const getApiInfo = async (): Promise<any> => {
   try {
-    console.log('ℹ️ Getting API info...');
+    console.log('ℹ️ Getting enhanced API info...');
     const response = await axios.get(`${API_BASE_URL}/info`, {
       timeout: 10000,
     });
-    console.log('✅ API info response:', response.data);
-    return response.data;
+    
+    const infoData = response.data;
+    console.log('✅ Enhanced API info response:', infoData);
+    
+    // ✅ Log enhanced API features
+    if (infoData) {
+      console.log('🔍 Model version:', infoData.model_info?.version);
+      console.log('🔍 Weights loaded:', infoData.model_info?.weights_loaded);
+      console.log('🔍 Neutral threshold:', infoData.model_info?.neutral_threshold);
+      console.log('🔍 Health classifications:', infoData.model_info?.health_classifications);
+      console.log('🔍 Features available:', infoData.features);
+      console.log('🔍 API version:', infoData.api_version);
+    }
+    
+    return infoData;
   } catch (error) {
-    console.error('❌ API info failed:', error);
+    console.error('❌ Enhanced API info failed:', error);
     if (axios.isAxiosError(error)) {
       const message = error.response?.data?.detail || error.message;
       throw new ApiError(`API info failed: ${message}`, error.response?.status);
@@ -210,7 +258,7 @@ export const validateAudioFile = (file: File): { valid: boolean; error?: string 
     return { valid: false, error: 'File is empty.' };
   }
 
-  // Check file type
+  // ✅ Enhanced file type support including WebM
   const allowedTypes = [
     'audio/wav', 
     'audio/mpeg', 
@@ -219,7 +267,7 @@ export const validateAudioFile = (file: File): { valid: boolean; error?: string 
     'audio/ogg', 
     'audio/x-m4a',
     'audio/mp4',
-    'audio/webm'
+    'audio/webm'  // ✅ WebM support for browser recordings
   ];
   
   if (file.type && !allowedTypes.includes(file.type)) {
@@ -233,21 +281,33 @@ export const validateAudioFile = (file: File): { valid: boolean; error?: string 
   return { valid: true };
 };
 
-// Utility function to test API connectivity
-export const testApiConnection = async (): Promise<boolean> => {
+// ✅ Enhanced connectivity test with health classification check
+export const testApiConnection = async (): Promise<{ connected: boolean; features: any }> => {
   try {
-    await checkApiHealth();
-    return true;
+    const healthData = await checkApiHealth();
+    return {
+      connected: true,
+      features: {
+        modelLoaded: healthData.model_loaded,
+        weightsStatus: healthData.model_weights_status,
+        healthClassificationEnabled: healthData.health_classification_enabled,
+        neutralThreshold: healthData.neutral_threshold,
+        filesFound: healthData.files_found
+      }
+    };
   } catch (error) {
-    console.error('❌ API connection test failed:', error);
-    return false;
+    console.error('❌ Enhanced API connection test failed:', error);
+    return {
+      connected: false,
+      features: null
+    };
   }
 };
 
-// Utility function for debugging - get full API status
+// ✅ Enhanced full API status with all new features
 export const getFullApiStatus = async () => {
   try {
-    console.log('🔍 Getting full API status...');
+    console.log('🔍 Getting comprehensive API status...');
     
     const [health, info] = await Promise.allSettled([
       checkApiHealth(),
@@ -257,13 +317,75 @@ export const getFullApiStatus = async () => {
     const status = {
       health: health.status === 'fulfilled' ? health.value : { error: health.reason?.message },
       info: info.status === 'fulfilled' ? info.value : { error: info.reason?.message },
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      // ✅ Enhanced status summary
+      summary: {
+        apiOperational: health.status === 'fulfilled',
+        modelLoaded: health.status === 'fulfilled' ? health.value?.model_loaded : false,
+        weightsStatus: health.status === 'fulfilled' ? health.value?.model_weights_status : 'unknown',
+        healthClassificationEnabled: health.status === 'fulfilled' ? health.value?.health_classification_enabled : false,
+        featuresAvailable: info.status === 'fulfilled' ? info.value?.features : null
+      }
     };
 
-    console.log('📊 Full API status:', status);
+    console.log('📊 Comprehensive API status:', status);
     return status;
   } catch (error) {
-    console.error('❌ Failed to get full API status:', error);
+    console.error('❌ Failed to get comprehensive API status:', error);
     throw error;
+  }
+};
+
+// ✅ New utility: Test specific health classification features
+export const testHealthClassificationFeatures = async (): Promise<{
+  available: boolean;
+  neutralThreshold: number | null;
+  weightsLoaded: boolean;
+  classifications: string[];
+}> => {
+  try {
+    const [health, info] = await Promise.all([checkApiHealth(), getApiInfo()]);
+    
+    return {
+      available: health.health_classification_enabled || false,
+      neutralThreshold: health.neutral_threshold || info.model_info?.neutral_threshold || null,
+      weightsLoaded: health.model_weights_status === 'trained',
+      classifications: info.model_info?.health_classifications || ['healthy', 'symptoms_detected', 'inconclusive']
+    };
+  } catch (error) {
+    console.error('❌ Health classification feature test failed:', error);
+    return {
+      available: false,
+      neutralThreshold: null,
+      weightsLoaded: false,
+      classifications: []
+    };
+  }
+};
+
+// ✅ New utility: Quick model status check
+export const getModelStatus = async (): Promise<{
+  loaded: boolean;
+  weightsStatus: 'trained' | 'random' | 'unknown';
+  neutralThreshold: number | null;
+  filesFound: number;
+}> => {
+  try {
+    const health = await checkApiHealth();
+    
+    return {
+      loaded: health.model_loaded || false,
+      weightsStatus: health.model_weights_status || 'unknown',
+      neutralThreshold: health.neutral_threshold || null,
+      filesFound: health.files_found || 0
+    };
+  } catch (error) {
+    console.error('❌ Model status check failed:', error);
+    return {
+      loaded: false,
+      weightsStatus: 'unknown',
+      neutralThreshold: null,
+      filesFound: 0
+    };
   }
 };

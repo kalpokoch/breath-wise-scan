@@ -35,120 +35,94 @@ const Index = () => {
         type: audioFile.type
       });
 
-      // ✅ Call the API
+      // Call the API
       const analysisData = await analyzeAudio(audioFile, filename);
       
-      console.log('=== 🔍 RECEIVED DATA DEBUG ===');
+      console.log('=== 🔍 ENHANCED DATA DEBUG ===');
       console.log('Raw analysisData:', analysisData);
-      console.log('Type of analysisData:', typeof analysisData);
-      console.log('Is analysisData null/undefined?', analysisData == null);
-      
-      if (analysisData) {
-        console.log('analysisData keys:', Object.keys(analysisData));
-        console.log('detected_symptoms exists?', 'detected_symptoms' in analysisData);
-        console.log('detected_symptoms value:', analysisData.detected_symptoms);
-        console.log('detected_symptoms type:', typeof analysisData.detected_symptoms);
-        console.log('all_symptoms exists?', 'all_symptoms' in analysisData);
-        console.log('summary exists?', 'summary' in analysisData);
-        console.log('recommendations exists?', 'recommendations' in analysisData);
-        console.log('processing_info exists?', 'processing_info' in analysisData);
-      }
+      console.log('Health classification:', analysisData.health_classification);
+      console.log('Summary status:', analysisData.summary?.status);
+      console.log('Summary status message:', analysisData.summary?.status_message);
+      console.log('Weights status:', analysisData.summary?.weights_status);
+      console.log('Detected symptoms count:', analysisData.detected_symptoms?.length);
+      console.log('Processing info:', analysisData.processing_info);
       console.log('===============================');
       
-      // ✅ CRITICAL: Validate and sanitize the response
+      // Enhanced validation for new fields
       if (!analysisData) {
         throw new Error('No analysis data received from server');
       }
       
-      // ✅ Create a safe, fully validated analysis data object
+      // Create enhanced safe analysis data with all new fields
       const safeAnalysisData: AnalysisData = {
-        detected_symptoms: (() => {
-          if (Array.isArray(analysisData.detected_symptoms)) {
-            return analysisData.detected_symptoms;
-          } else {
-            console.warn('⚠️ detected_symptoms is not an array:', analysisData.detected_symptoms);
-            return [];
-          }
-        })(),
+        detected_symptoms: Array.isArray(analysisData.detected_symptoms) 
+          ? analysisData.detected_symptoms 
+          : [],
         
-        all_symptoms: (() => {
-          if (analysisData.all_symptoms && typeof analysisData.all_symptoms === 'object') {
-            return analysisData.all_symptoms;
-          } else {
-            console.warn('⚠️ all_symptoms is not an object:', analysisData.all_symptoms);
-            return {};
-          }
-        })(),
+        all_symptoms: analysisData.all_symptoms && typeof analysisData.all_symptoms === 'object' 
+          ? analysisData.all_symptoms 
+          : {},
         
-        summary: (() => {
-          if (analysisData.summary && typeof analysisData.summary === 'object') {
-            return {
-              total_detected: analysisData.summary.total_detected || 0,
-              highest_confidence: analysisData.summary.highest_confidence || 0,
-              status: analysisData.summary.status || 'no_symptoms'
-            };
-          } else {
-            console.warn('⚠️ summary is missing, creating default');
-            const detectedCount = Array.isArray(analysisData.detected_symptoms) 
-              ? analysisData.detected_symptoms.length 
-              : 0;
-            return {
-              total_detected: detectedCount,
-              highest_confidence: detectedCount > 0 
-                ? Math.max(...(analysisData.detected_symptoms || []).map((s: any) => s.confidence || 0))
-                : 0,
-              status: detectedCount > 0 ? 'symptoms_detected' : 'no_symptoms'
-            };
-          }
-        })(),
+        summary: {
+          total_detected: analysisData.summary?.total_detected || 0,
+          highest_confidence: analysisData.summary?.highest_confidence || 0,
+          max_overall_confidence: analysisData.summary?.max_overall_confidence || 0,  // ✅ New field
+          status: analysisData.summary?.status || 'inconclusive',
+          status_message: analysisData.summary?.status_message || 'Analysis completed',  // ✅ New field
+          neutral_threshold: analysisData.summary?.neutral_threshold || 0.35,  // ✅ New field
+          weights_status: analysisData.summary?.weights_status || 'random'  // ✅ New field
+        },
         
-        recommendations: (() => {
-          if (Array.isArray(analysisData.recommendations)) {
-            return analysisData.recommendations;
-          } else {
-            console.warn('⚠️ recommendations is not an array:', analysisData.recommendations);
-            return ['Analysis completed successfully.'];
-          }
-        })(),
+        recommendations: Array.isArray(analysisData.recommendations) 
+          ? analysisData.recommendations 
+          : ['Analysis completed successfully.'],
         
-        processing_info: (() => {
-          if (analysisData.processing_info && typeof analysisData.processing_info === 'object') {
-            return {
-              preprocessing_time_ms: analysisData.processing_info.preprocessing_time_ms || 0,
-              inference_time_ms: analysisData.processing_info.inference_time_ms || 0,
-              total_time_ms: analysisData.processing_info.total_time_ms || 0,
-              model_status: analysisData.processing_info.model_status
-            };
-          } else {
-            console.warn('⚠️ processing_info is missing, creating default');
-            return {
-              preprocessing_time_ms: 0,
-              inference_time_ms: 0,
-              total_time_ms: 0
-            };
-          }
-        })()
+        processing_info: {
+          preprocessing_time_ms: analysisData.processing_info?.preprocessing_time_ms || 0,
+          inference_time_ms: analysisData.processing_info?.inference_time_ms || 0,
+          total_time_ms: analysisData.processing_info?.total_time_ms || 0,
+          model_weights_loaded: analysisData.processing_info?.model_weights_loaded || false,  // ✅ Updated
+          neutral_threshold: analysisData.processing_info?.neutral_threshold || 0.35,  // ✅ New field
+          max_confidence: analysisData.processing_info?.max_confidence || 0  // ✅ New field
+        },
+        
+        health_classification: analysisData.health_classification || 'inconclusive'  // ✅ New field
       };
       
-      console.log('✅ Safe analysis data created:', safeAnalysisData);
-      console.log('✅ Detected symptoms count:', safeAnalysisData.detected_symptoms.length);
-      console.log('✅ Summary total detected:', safeAnalysisData.summary.total_detected);
+      console.log('✅ Enhanced safe analysis data:', safeAnalysisData);
+      console.log('✅ Health classification:', safeAnalysisData.health_classification);
+      console.log('✅ Status message:', safeAnalysisData.summary.status_message);
       
-      // ✅ Display results based on detected symptoms
-      if (safeAnalysisData.detected_symptoms.length > 0) {
-        setResults(safeAnalysisData);
-        toast.success('Analysis complete!', {
-          description: `Found ${safeAnalysisData.summary.total_detected} symptoms`,
+      // Enhanced result handling based on health classification
+      setResults(safeAnalysisData);
+      
+      // Enhanced toast messages based on health status
+      if (safeAnalysisData.health_classification === 'healthy') {
+        toast.success('Analysis complete - Healthy!', {
+          description: '✅ No significant symptoms detected',
+        });
+      } else if (safeAnalysisData.health_classification === 'symptoms_detected') {
+        toast.success('Analysis complete - Symptoms detected', {
+          description: `🔍 Found ${safeAnalysisData.summary.total_detected} symptom(s)`,
         });
       } else {
-        toast.info('No significant symptoms detected', {
-          description: 'The analysis did not identify any symptoms above the confidence threshold',
+        toast.info('Analysis complete - Inconclusive', {
+          description: '⚠️ Some patterns detected but below threshold',
         });
-        setResults(safeAnalysisData); // Still show results even if no symptoms
+      }
+      
+      // Show model status warning if using random weights
+      if (safeAnalysisData.summary.weights_status === 'random') {
+        setTimeout(() => {
+          toast.warning('Development Mode Active', {
+            description: 'Using random weights - results are for testing only',
+            duration: 4000
+          });
+        }, 1000);
       }
       
     } catch (error) {
-      console.error('=== 🚨 ANALYSIS ERROR DEBUG ===');
+      console.error('=== 🚨 ENHANCED ERROR DEBUG ===');
       console.error('Error type:', error instanceof Error ? error.constructor.name : typeof error);
       console.error('Error message:', error instanceof Error ? error.message : String(error));
       console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
@@ -181,24 +155,29 @@ const Index = () => {
       <div className="container mx-auto px-4 py-8 max-w-6xl relative z-10">
         {/* Header */}
         <div className="text-center mb-8 animate-fade-in">
+          <div className="flex justify-center mb-6">
+            <div className="p-4 bg-primary/10 rounded-2xl">
+              <Sparkles className="h-12 w-12 text-primary" />
+            </div>
+          </div>
           <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-4">
-            AI Respiratory Symptom Analyzer
+            AI Respiratory Health Analyzer
           </h1>
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-            Analyze cough sounds for potential respiratory symptoms using advanced AI technology
+            Advanced AI-powered respiratory health screening with intelligent symptom detection and health classification
           </p>
         </div>
 
-        {/* Medical Disclaimer */}
+        {/* Enhanced Medical Disclaimer */}
         {!disclaimerDismissed && (
           <Alert className="mb-8 border-warning bg-warning/5 animate-fade-in">
             <AlertTriangle className="h-5 w-5 text-warning" />
             <AlertDescription className="text-sm">
               <div className="flex items-start justify-between">
                 <div>
-                  <strong>⚠️ Medical Disclaimer:</strong> This is an AI-powered screening tool for testing purposes only. 
-                  Not medically validated. Not a substitute for professional medical diagnosis. 
-                  Consult healthcare providers for medical advice.
+                  <strong>⚠️ Medical Disclaimer:</strong> This is an AI-powered health screening tool for educational and testing purposes only. 
+                  Not medically validated or approved. Results should never replace professional medical diagnosis or treatment. 
+                  Always consult qualified healthcare providers for medical concerns and before making health-related decisions.
                 </div>
                 <Button
                   variant="ghost"
@@ -251,7 +230,7 @@ const Index = () => {
               </TabsContent>
             </Tabs>
 
-            {/* Info Cards */}
+            {/* Enhanced Info Cards */}
             <div className="space-y-6">
               <Card className="medical-card p-6">
                 <h3 className="text-lg font-semibold text-foreground mb-4">
@@ -263,7 +242,7 @@ const Index = () => {
                       1
                     </div>
                     <p className="text-muted-foreground">
-                      Record or upload a clear cough audio sample
+                      Record or upload a clear cough audio sample (3-10 seconds)
                     </p>
                   </div>
                   <div className="flex items-start space-x-3">
@@ -271,7 +250,7 @@ const Index = () => {
                       2
                     </div>
                     <p className="text-muted-foreground">
-                      Our AI analyzes the audio for respiratory patterns
+                      AI analyzes audio patterns and applies dual-threshold classification
                     </p>
                   </div>
                   <div className="flex items-start space-x-3">
@@ -279,10 +258,34 @@ const Index = () => {
                       3
                     </div>
                     <p className="text-muted-foreground">
-                      Get detailed results with confidence levels and recommendations
+                      Get health classification (Healthy/Symptoms/Inconclusive) with detailed analysis
                     </p>
                   </div>
                 </div>
+              </Card>
+
+              <Card className="medical-card p-6">
+                <h3 className="text-lg font-semibold text-foreground mb-4">
+                  Features
+                </h3>
+                <ul className="space-y-2 text-muted-foreground">
+                  <li className="flex items-start space-x-2">
+                    <div className="w-1.5 h-1.5 bg-green-500 rounded-full mt-2 flex-shrink-0" />
+                    <span>🎯 Intelligent health classification system</span>
+                  </li>
+                  <li className="flex items-start space-x-2">
+                    <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-2 flex-shrink-0" />
+                    <span>🔍 Multi-symptom detection with confidence scoring</span>
+                  </li>
+                  <li className="flex items-start space-x-2">
+                    <div className="w-1.5 h-1.5 bg-purple-500 rounded-full mt-2 flex-shrink-0" />
+                    <span>📊 Advanced threshold-based analysis</span>
+                  </li>
+                  <li className="flex items-start space-x-2">
+                    <div className="w-1.5 h-1.5 bg-orange-500 rounded-full mt-2 flex-shrink-0" />
+                    <span>⚡ Real-time processing with detailed reporting</span>
+                  </li>
+                </ul>
               </Card>
 
               <Card className="medical-card p-6">
@@ -292,19 +295,19 @@ const Index = () => {
                 <ul className="space-y-2 text-muted-foreground">
                   <li className="flex items-start space-x-2">
                     <div className="w-1.5 h-1.5 bg-primary rounded-full mt-2 flex-shrink-0" />
-                    <span>Record in a quiet environment</span>
+                    <span>Record in a quiet environment for best accuracy</span>
                   </li>
                   <li className="flex items-start space-x-2">
                     <div className="w-1.5 h-1.5 bg-primary rounded-full mt-2 flex-shrink-0" />
-                    <span>Cough naturally, don't force it</span>
+                    <span>Cough naturally - avoid forcing or suppressing</span>
                   </li>
                   <li className="flex items-start space-x-2">
                     <div className="w-1.5 h-1.5 bg-primary rounded-full mt-2 flex-shrink-0" />
-                    <span>Keep the microphone at arm's length</span>
+                    <span>Maintain consistent distance from microphone</span>
                   </li>
                   <li className="flex items-start space-x-2">
                     <div className="w-1.5 h-1.5 bg-primary rounded-full mt-2 flex-shrink-0" />
-                    <span>Use uncompressed formats when possible</span>
+                    <span>Use results as screening only, not diagnosis</span>
                   </li>
                 </ul>
               </Card>
@@ -313,7 +316,20 @@ const Index = () => {
         ) : (
           <div className="space-y-6">
             <div className="flex items-center justify-between">
-              <h2 className="text-2xl font-bold text-foreground">Analysis Results</h2>
+              <div>
+                <h2 className="text-2xl font-bold text-foreground">Analysis Results</h2>
+                <p className="text-muted-foreground">
+                  Health Classification: <span className={`font-semibold ${
+                    results.health_classification === 'healthy' ? 'text-green-600' :
+                    results.health_classification === 'symptoms_detected' ? 'text-red-600' :
+                    'text-yellow-600'
+                  }`}>
+                    {results.health_classification === 'healthy' ? 'Healthy' :
+                     results.health_classification === 'symptoms_detected' ? 'Symptoms Detected' :
+                     'Inconclusive'}
+                  </span>
+                </p>
+              </div>
               <Button
                 onClick={handleReset}
                 variant="outline"
@@ -331,7 +347,7 @@ const Index = () => {
           </div>
         )}
 
-        {/* Loading State */}
+        {/* Enhanced Loading State */}
         {isAnalyzing && (
           <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center">
             <Card className="medical-card p-8 max-w-md mx-4">
@@ -343,11 +359,14 @@ const Index = () => {
                   Analyzing Audio
                 </h3>
                 <p className="text-muted-foreground">
-                  Please wait while our AI processes your audio sample...
+                  AI is processing your audio sample for respiratory patterns...
                 </p>
-                <p className="text-xs text-muted-foreground">
-                  Processing: {currentFilename}
-                </p>
+                <div className="text-xs text-muted-foreground space-y-1">
+                  <p>Processing: {currentFilename}</p>
+                  <p>• Audio preprocessing</p>
+                  <p>• Feature extraction</p>
+                  <p>• Health classification</p>
+                </div>
               </div>
             </Card>
           </div>
@@ -356,7 +375,7 @@ const Index = () => {
         {/* Footer */}
         <footer className="mt-16 text-center text-muted-foreground">
           <p className="text-sm">
-            AI Respiratory Symptom Analyzer • For testing and educational purposes only
+            AI Respiratory Health Analyzer • Enhanced with Health Classification • For educational and testing purposes only
           </p>
         </footer>
       </div>
