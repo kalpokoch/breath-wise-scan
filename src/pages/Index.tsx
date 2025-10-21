@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { AlertTriangle, Mic, Upload, RotateCcw, Sparkles } from 'lucide-react';
+import { AlertTriangle, Mic, Upload, RotateCcw, Sparkles, CheckCircle2, Search, Target, BarChart3, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -12,11 +12,13 @@ import { AnalysisData } from '../types/api';
 import { toast } from 'sonner';
 import heroBackground from '@/assets/hero-background.png';
 
+
 const Index = () => {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [results, setResults] = useState<AnalysisData | null>(null);
   const [currentFilename, setCurrentFilename] = useState<string>('');
   const [disclaimerDismissed, setDisclaimerDismissed] = useState(false);
+
 
   const handleAudioSubmission = async (audioFile: File | Blob, filename: string) => {
     setIsAnalyzing(true);
@@ -27,6 +29,7 @@ const Index = () => {
       duration: 3000,
     });
 
+
     try {
       console.log('🚀 Starting audio analysis for:', filename);
       console.log('📁 File details:', {
@@ -34,6 +37,7 @@ const Index = () => {
         size: audioFile.size,
         type: audioFile.type
       });
+
 
       // Call the API
       const analysisData = await analyzeAudio(audioFile, filename);
@@ -66,11 +70,11 @@ const Index = () => {
         summary: {
           total_detected: analysisData.summary?.total_detected || 0,
           highest_confidence: analysisData.summary?.highest_confidence || 0,
-          max_overall_confidence: analysisData.summary?.max_overall_confidence || 0,  // ✅ New field
+          max_overall_confidence: analysisData.summary?.max_overall_confidence || 0,
           status: analysisData.summary?.status || 'inconclusive',
-          status_message: analysisData.summary?.status_message || 'Analysis completed',  // ✅ New field
-          neutral_threshold: analysisData.summary?.neutral_threshold || 0.35,  // ✅ New field
-          weights_status: analysisData.summary?.weights_status || 'random'  // ✅ New field
+          status_message: analysisData.summary?.status_message || 'Analysis completed',
+          neutral_threshold: analysisData.summary?.neutral_threshold || 0.35,
+          weights_status: analysisData.summary?.weights_status || 'random'
         },
         
         recommendations: Array.isArray(analysisData.recommendations) 
@@ -81,12 +85,12 @@ const Index = () => {
           preprocessing_time_ms: analysisData.processing_info?.preprocessing_time_ms || 0,
           inference_time_ms: analysisData.processing_info?.inference_time_ms || 0,
           total_time_ms: analysisData.processing_info?.total_time_ms || 0,
-          model_weights_loaded: analysisData.processing_info?.model_weights_loaded || false,  // ✅ Updated
-          neutral_threshold: analysisData.processing_info?.neutral_threshold || 0.35,  // ✅ New field
-          max_confidence: analysisData.processing_info?.max_confidence || 0  // ✅ New field
+          model_weights_loaded: analysisData.processing_info?.model_weights_loaded || false,
+          neutral_threshold: analysisData.processing_info?.neutral_threshold || 0.35,
+          max_confidence: analysisData.processing_info?.max_confidence || 0
         },
         
-        health_classification: analysisData.health_classification || 'inconclusive'  // ✅ New field
+        health_classification: analysisData.health_classification || 'inconclusive'
       };
       
       console.log('✅ Enhanced safe analysis data:', safeAnalysisData);
@@ -96,18 +100,21 @@ const Index = () => {
       // Enhanced result handling based on health classification
       setResults(safeAnalysisData);
       
-      // Enhanced toast messages based on health status
+      // Enhanced toast messages based on health status (with icons)
       if (safeAnalysisData.health_classification === 'healthy') {
         toast.success('Analysis complete - Healthy!', {
-          description: '✅ No significant symptoms detected',
+          description: 'No significant symptoms detected',
+          icon: <CheckCircle2 className="h-5 w-5" />,
         });
       } else if (safeAnalysisData.health_classification === 'symptoms_detected') {
         toast.success('Analysis complete - Symptoms detected', {
-          description: `🔍 Found ${safeAnalysisData.summary.total_detected} symptom(s)`,
+          description: `Found ${safeAnalysisData.summary.total_detected} symptom(s)`,
+          icon: <Search className="h-5 w-5" />,
         });
       } else {
         toast.info('Analysis complete - Inconclusive', {
-          description: '⚠️ Some patterns detected but below threshold',
+          description: 'Some patterns detected but below threshold',
+          icon: <AlertTriangle className="h-5 w-5" />,
         });
       }
       
@@ -137,12 +144,14 @@ const Index = () => {
     }
   };
 
+
   const handleReset = () => {
     setResults(null);
     setCurrentFilename('');
     setIsAnalyzing(false);
     console.log('🔄 Analysis reset');
   };
+
 
   return (
     <div className="min-h-screen medical-gradient relative overflow-hidden">
@@ -165,16 +174,20 @@ const Index = () => {
           </p>
         </div>
 
+
         {/* Enhanced Medical Disclaimer */}
         {!disclaimerDismissed && (
           <Alert className="mb-8 border-warning bg-warning/5 animate-fade-in">
             <AlertTriangle className="h-5 w-5 text-warning" />
             <AlertDescription className="text-sm">
               <div className="flex items-start justify-between">
-                <div>
-                  <strong>⚠️ Medical Disclaimer:</strong> This is an AI-powered health screening tool for educational and testing purposes only. 
-                  Not medically validated or approved. Results should never replace professional medical diagnosis or treatment. 
-                  Always consult qualified healthcare providers for medical concerns and before making health-related decisions.
+                <div className="flex items-start gap-2">
+                  <AlertTriangle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <strong>Medical Disclaimer:</strong> This is an AI-powered health screening tool for educational and testing purposes only. 
+                    Not medically validated or approved. Results should never replace professional medical diagnosis or treatment. 
+                    Always consult qualified healthcare providers for medical concerns and before making health-related decisions.
+                  </div>
                 </div>
                 <Button
                   variant="ghost"
@@ -188,6 +201,7 @@ const Index = () => {
             </AlertDescription>
           </Alert>
         )}
+
 
         {/* Main Content */}
         {!results ? (
@@ -227,6 +241,7 @@ const Index = () => {
               </TabsContent>
             </Tabs>
 
+
             {/* Enhanced Info Cards */}
             <div className="space-y-6">
               <Card className="medical-card p-6">
@@ -261,29 +276,31 @@ const Index = () => {
                 </div>
               </Card>
 
+
               <Card className="medical-card p-6">
                 <h3 className="text-lg font-semibold text-foreground mb-4">
                   Features
                 </h3>
                 <ul className="space-y-2 text-muted-foreground">
                   <li className="flex items-start space-x-2">
-                    <div className="w-1.5 h-1.5 bg-green-500 rounded-full mt-2 flex-shrink-0" />
-                    <span>🎯 Intelligent health classification system</span>
+                    <Target className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
+                    <span>Intelligent health classification system</span>
                   </li>
                   <li className="flex items-start space-x-2">
-                    <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-2 flex-shrink-0" />
-                    <span>🔍 Multi-symptom detection with confidence scoring</span>
+                    <Search className="h-4 w-4 text-blue-500 mt-0.5 flex-shrink-0" />
+                    <span>Multi-symptom detection with confidence scoring</span>
                   </li>
                   <li className="flex items-start space-x-2">
-                    <div className="w-1.5 h-1.5 bg-purple-500 rounded-full mt-2 flex-shrink-0" />
-                    <span>📊 Advanced threshold-based analysis</span>
+                    <BarChart3 className="h-4 w-4 text-purple-500 mt-0.5 flex-shrink-0" />
+                    <span>Advanced threshold-based analysis</span>
                   </li>
                   <li className="flex items-start space-x-2">
-                    <div className="w-1.5 h-1.5 bg-orange-500 rounded-full mt-2 flex-shrink-0" />
-                    <span>⚡ Real-time processing with detailed reporting</span>
+                    <Zap className="h-4 w-4 text-orange-500 mt-0.5 flex-shrink-0" />
+                    <span>Real-time processing with detailed reporting</span>
                   </li>
                 </ul>
               </Card>
+
 
               <Card className="medical-card p-6">
                 <h3 className="text-lg font-semibold text-foreground mb-4">
@@ -344,6 +361,7 @@ const Index = () => {
           </div>
         )}
 
+
         {/* Enhanced Loading State */}
         {isAnalyzing && (
           <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center">
@@ -369,6 +387,7 @@ const Index = () => {
           </div>
         )}
 
+
         {/* Footer */}
         <footer className="mt-16 text-center text-muted-foreground">
           <p className="text-sm">
@@ -379,5 +398,6 @@ const Index = () => {
     </div>
   );
 };
+
 
 export default Index;
