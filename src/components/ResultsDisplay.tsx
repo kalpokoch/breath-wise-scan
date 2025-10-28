@@ -269,60 +269,6 @@ Note: This is an AI-powered screening tool for informational purposes only.
         <SymptomChart symptoms={results.detected_symptoms} />
       )}
 
-      {/* Health Status Message - NEW */}
-      <Card className="medical-card p-6">
-        <div className="text-center">
-          <div className={`inline-flex items-center space-x-2 px-4 py-2 rounded-full text-sm font-medium ${
-            results.health_classification === 'healthy' 
-              ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-              : results.health_classification === 'symptoms_detected'
-              ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
-              : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
-          }`}>
-            {results.health_classification === 'healthy' ? (
-              <CheckCircle className="h-4 w-4" />
-            ) : results.health_classification === 'symptoms_detected' ? (
-              <AlertTriangle className="h-4 w-4" />
-            ) : (
-              <Activity className="h-4 w-4" />
-            )}
-            <span>{results.summary.status_message}</span>
-          </div>
-        </div>
-      </Card>
-
-      {/* Detected Symptoms List */}
-      {results.detected_symptoms.length > 0 && (
-        <Card className="medical-card p-6">
-          <h3 className="text-lg font-semibold text-foreground mb-4">
-            Detected Symptoms
-          </h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {results.detected_symptoms
-              .sort((a, b) => b.confidence - a.confidence)
-              .map((symptom, index) => (
-                <div
-                  key={symptom.symptom}
-                  className="flex items-center justify-between p-3 bg-muted/30 rounded-lg"
-                >
-                  <div className="flex items-center space-x-3">
-                    <div
-                      className="w-3 h-3 rounded-full"
-                      style={{ backgroundColor: symptom.color }}
-                    />
-                    <span className="font-medium text-foreground">
-                      {symptom.display_name}
-                    </span>
-                  </div>
-                  <Badge variant="outline" className="bg-background">
-                    {Math.round(symptom.confidence * 100)}%
-                  </Badge>
-                </div>
-              ))}
-          </div>
-        </Card>
-      )}
-
       {/* Recommendations */}
       {results.recommendations.length > 0 && (
         <Card className="medical-card p-6">
