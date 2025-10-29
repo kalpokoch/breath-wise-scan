@@ -178,7 +178,6 @@ const Index = () => {
         {/* Enhanced Medical Disclaimer */}
         {!disclaimerDismissed && (
           <Alert className="mb-8 border-warning bg-warning/5 animate-fade-in">
-            <AlertTriangle className="h-5 w-5 text-warning" />
             <AlertDescription className="text-sm">
               <div className="flex items-start justify-between">
                 <div className="flex items-start gap-2">
