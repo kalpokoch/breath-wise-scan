@@ -1,5 +1,5 @@
 import React from 'react';
-import { Download, Copy, FileText, AlertTriangle, CheckCircle, Clock, Activity } from 'lucide-react';
+import { Download, Copy, FileText, AlertTriangle, CheckCircle, Clock, Activity, XCircle, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -137,11 +137,30 @@ Note: This is an AI-powered screening tool for informational purposes only.
     toast.success('Results copied to clipboard');
   };
 
+  // Helper function to get icon for recommendation type
+  const getRecommendationIcon = (recommendation: string) => {
+    if (recommendation.includes('⚠️') || recommendation.toLowerCase().includes('warning')) {
+      return <AlertTriangle className="h-4 w-4 text-orange-500 flex-shrink-0" />;
+    }
+    if (recommendation.includes('✅') || recommendation.toLowerCase().includes('good') || recommendation.toLowerCase().includes('healthy')) {
+      return <CheckCircle className="h-4 w-4 text-green-500 flex-shrink-0" />;
+    }
+    if (recommendation.includes('🚨') || recommendation.toLowerCase().includes('urgent') || recommendation.toLowerCase().includes('consult')) {
+      return <XCircle className="h-4 w-4 text-red-500 flex-shrink-0" />;
+    }
+    return <Info className="h-4 w-4 text-primary flex-shrink-0" />;
+  };
+
+  // Clean recommendation text by removing emojis
+  const cleanRecommendationText = (text: string) => {
+    return text.replace(/[⚠️✅🚨]/g, '').trim();
+  };
+
   return (
     <div className="space-y-6 animate-fade-in" ref={chartRef}>
       {/* Enhanced Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Health Classification Card - NEW */}
+        {/* Health Classification Card */}
         <Card className={`medical-card p-4 ${
           results.health_classification === 'healthy' 
             ? 'border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-950' 
@@ -224,12 +243,12 @@ Note: This is an AI-powered screening tool for informational purposes only.
         </Card>
       </div>
 
-      {/* Model Status Warning - NEW */}
+      {/* Model Status Warning */}
       {results.summary.weights_status === 'random' && (
         <Alert className="border-orange-200 bg-orange-50 dark:border-orange-800 dark:bg-orange-950">
           <AlertTriangle className="h-4 w-4 text-orange-600" />
           <AlertDescription>
-            <strong>⚠️ Development Mode:</strong> The model is currently using random weights. 
+            <strong>Development Mode:</strong> The model is currently using random weights. 
             For accurate medical predictions, trained model weights need to be properly loaded.
             <br />
             <span className="text-xs text-muted-foreground mt-1 block">
@@ -239,7 +258,7 @@ Note: This is an AI-powered screening tool for informational purposes only.
         </Alert>
       )}
 
-      {/* Analysis Details Card - NEW */}
+      {/* Analysis Details Card */}
       <Card className="medical-card p-4">
         <h4 className="text-sm font-semibold text-foreground mb-3">Analysis Details</h4>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
@@ -278,13 +297,10 @@ Note: This is an AI-powered screening tool for informational purposes only.
           <ul className="space-y-3">
             {results.recommendations.map((recommendation, index) => (
               <li key={index} className="flex items-start space-x-3">
-                <div className={`w-2 h-2 rounded-full mt-2 flex-shrink-0 ${
-                  recommendation.includes('⚠️') ? 'bg-orange-500' :
-                  recommendation.includes('✅') ? 'bg-green-500' :
-                  recommendation.includes('🚨') ? 'bg-red-500' :
-                  'bg-primary'
-                }`} />
-                <p className="text-foreground leading-relaxed">{recommendation}</p>
+                {getRecommendationIcon(recommendation)}
+                <p className="text-foreground leading-relaxed">
+                  {cleanRecommendationText(recommendation)}
+                </p>
               </li>
             ))}
           </ul>
