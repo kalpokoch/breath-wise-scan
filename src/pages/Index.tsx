@@ -10,6 +10,7 @@ import ResultsDisplay from '../components/ResultsDisplay';
 import { analyzeAudio } from '../services/api';
 import { AnalysisData } from '../types/api';
 import { toast } from 'sonner';
+import { SiGithub } from '@icons-pack/react-simple-icons';
 import heroBackground from '@/assets/hero-background.png';
 
 
@@ -166,13 +167,26 @@ const Index = () => {
         <div className="text-center mb-8 animate-fade-in">
           <div className="flex justify-center mb-6">
           </div>
-          <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-4">
-            AI Respiratory Health Analyzer
-          </h1>
+          <div className="relative">
+            <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-4">
+              AI Respiratory Health Analyzer
+            </h1>
+            {/* GitHub Link */}
+            <a
+              href="https://github.com/kalpokoch/breath-wise-scan"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="absolute top-0 right-0 p-2 hover:opacity-70 transition-opacity"
+              aria-label="View source on GitHub"
+            >
+              <SiGithub size={24} className="text-foreground" />
+            </a>
+          </div>
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
             Advanced AI-powered respiratory health screening with intelligent symptom detection and health classification
           </p>
         </div>
+
 
 
         {/* Enhanced Medical Disclaimer */}
