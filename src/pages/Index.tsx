@@ -179,7 +179,7 @@ const Index = () => {
               className="absolute top-0 right-0 p-2 hover:opacity-70 transition-opacity"
               aria-label="View source on GitHub"
             >
-              <SiGithub size={24} className="text-foreground" />
+              <SiGithub size={48} className="text-foreground" />
             </a>
           </div>
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
