@@ -1,5 +1,5 @@
-import React from 'react';
-import { Download, Copy, FileText, AlertTriangle, CheckCircle, Clock, Activity, XCircle, Info } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Download, Copy, FileText, AlertTriangle, CheckCircle, Clock, Activity, XCircle, Info, ThumbsUp, ThumbsDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -15,8 +15,93 @@ interface ResultsDisplayProps {
   filename: string;
 }
 
+// Feedback data structure
+interface FeedbackData {
+  sessionId: string;
+  timestamp: string;
+  filename: string;
+  feedback: 'correct' | 'incorrect';
+  analysisResults: AnalysisData;
+  healthClassification: string;
+  symptomsDetected: number;
+  highestConfidence: number;
+}
+
 const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ results, filename }) => {
   const chartRef = React.useRef<HTMLDivElement>(null);
+  const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
+  const [submittedFeedback, setSubmittedFeedback] = useState<'correct' | 'incorrect' | null>(null);
+
+  // Generate or retrieve session ID
+  const getSessionId = (): string => {
+    let sessionId = localStorage.getItem('respiratory_session_id');
+    
+    if (!sessionId) {
+      // Generate UUID v4
+      sessionId = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+        const r = Math.random() * 16 | 0;
+        const v = c === 'x' ? r : (r & 0x3 | 0x8);
+        return v.toString(16);
+      });
+      
+      localStorage.setItem('respiratory_session_id', sessionId);
+    }
+    
+    return sessionId;
+  };
+
+  // Check if feedback already submitted for this analysis
+  useEffect(() => {
+    const feedbackKey = `feedback_${filename}_${results.processing_info.total_time_ms}`;
+    const existingFeedback = localStorage.getItem(feedbackKey);
+    
+    if (existingFeedback) {
+      const parsed = JSON.parse(existingFeedback);
+      setFeedbackSubmitted(true);
+      setSubmittedFeedback(parsed.feedback);
+    }
+  }, [filename, results.processing_info.total_time_ms]);
+
+  // Handle feedback submission
+  const handleFeedback = (feedbackType: 'correct' | 'incorrect') => {
+    const sessionId = getSessionId();
+    
+    const feedbackData: FeedbackData = {
+      sessionId,
+      timestamp: new Date().toISOString(),
+      filename,
+      feedback: feedbackType,
+      analysisResults: results,
+      healthClassification: results.health_classification,
+      symptomsDetected: results.summary.total_detected,
+      highestConfidence: results.summary.highest_confidence,
+    };
+
+    // Store individual feedback
+    const feedbackKey = `feedback_${filename}_${results.processing_info.total_time_ms}`;
+    localStorage.setItem(feedbackKey, JSON.stringify(feedbackData));
+
+    // Append to feedback history
+    const historyKey = 'respiratory_feedback_history';
+    const existingHistory = localStorage.getItem(historyKey);
+    const history: FeedbackData[] = existingHistory ? JSON.parse(existingHistory) : [];
+    history.push(feedbackData);
+    localStorage.setItem(historyKey, JSON.stringify(history));
+
+    // Update UI state
+    setFeedbackSubmitted(true);
+    setSubmittedFeedback(feedbackType);
+
+    // Show success toast
+    toast.success(
+      feedbackType === 'correct' 
+        ? '✓ Thank you! Your feedback helps improve our model.' 
+        : '✓ Thank you for your feedback. We\'ll use this to enhance accuracy.',
+      {
+        duration: 4000,
+      }
+    );
+  };
 
   const downloadJSON = () => {
     const dataStr = JSON.stringify(results, null, 2);
@@ -306,6 +391,66 @@ Note: This is an AI-powered screening tool for informational purposes only.
           </ul>
         </Card>
       )}
+
+      {/* Feedback Section */}
+      <Card className="medical-card p-6 border-2 border-primary/20">
+        <div className="text-center space-y-4">
+          <div>
+            <h3 className="text-lg font-semibold text-foreground mb-2">
+              Was this analysis accurate?
+            </h3>
+            <p className="text-sm text-muted-foreground">
+              Your feedback helps us improve the model's accuracy and reliability
+            </p>
+          </div>
+          
+          {!feedbackSubmitted ? (
+            <div className="flex justify-center gap-4">
+              <Button
+                onClick={() => handleFeedback('correct')}
+                variant="outline"
+                size="lg"
+                className="flex items-center space-x-2 border-green-300 hover:bg-green-50 hover:border-green-400 dark:border-green-700 dark:hover:bg-green-950 transition-all"
+              >
+                <ThumbsUp className="h-5 w-5 text-green-600 dark:text-green-400" />
+                <span className="font-medium">Correct</span>
+              </Button>
+              
+              <Button
+                onClick={() => handleFeedback('incorrect')}
+                variant="outline"
+                size="lg"
+                className="flex items-center space-x-2 border-red-300 hover:bg-red-50 hover:border-red-400 dark:border-red-700 dark:hover:bg-red-950 transition-all"
+              >
+                <ThumbsDown className="h-5 w-5 text-red-600 dark:text-red-400" />
+                <span className="font-medium">Incorrect</span>
+              </Button>
+            </div>
+          ) : (
+            <div className={`flex items-center justify-center space-x-2 p-4 rounded-lg ${
+              submittedFeedback === 'correct'
+                ? 'bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800'
+                : 'bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800'
+            }`}>
+              {submittedFeedback === 'correct' ? (
+                <>
+                  <ThumbsUp className="h-5 w-5 text-green-600 dark:text-green-400" />
+                  <span className="font-medium text-green-700 dark:text-green-300">
+                    Thank you! Feedback recorded as Correct
+                  </span>
+                </>
+              ) : (
+                <>
+                  <ThumbsDown className="h-5 w-5 text-red-600 dark:text-red-400" />
+                  <span className="font-medium text-red-700 dark:text-red-300">
+                    Thank you! Feedback recorded as Incorrect
+                  </span>
+                </>
+              )}
+            </div>
+          )}
+        </div>
+      </Card>
 
       {/* Action Buttons */}
       <div className="flex flex-wrap gap-3 justify-center">
